@@ -35,9 +35,12 @@ never carry your laptop's development passwords onto the server.
 ```bash
 ssh root@<vps-ip>
 cd /opt/planopolis/planopolis-moodle
-chmod +x deploy.sh manage.sh
 sudo ./deploy.sh
 ```
+
+The scripts are stored executable in the repository, so a clone needs no `chmod`.
+Only if you downloaded a ZIP from GitHub (which drops permissions) run
+`chmod +x deploy.sh manage.sh` first.
 
 The script installs Docker, adds a 2 GB swap file, opens only ports 22/80/443 in the
 firewall, generates the database and Super Admin passwords, builds the image and waits
@@ -181,5 +184,6 @@ participant count before the event; the README's *Exam day* section covers this.
 | Browser cannot connect | `./manage.sh status`, then `ufw status`, and your provider's own firewall / security group |
 | HTTPS certificate fails | DNS must point at this server and port 80 must be reachable; `./manage.sh logs caddy` |
 | `server block without any key` from Caddy | `CADDY_ADDRESS` in `.env` is empty. It must be `:80` or a hostname; re-run `sudo ./deploy.sh` to set it |
+| `cannot execute ./deploy.sh: Permission denied` | The executable bit is missing: `chmod +x deploy.sh manage.sh`. A clone of the current revision already has it |
 | Logged-in pages look broken | `MOODLE_URL` in `.env` must exactly match what you type in the browser |
 | Site slow under load | `./manage.sh status` for memory; raise `MaxRequestWorkers` only if RAM allows |
