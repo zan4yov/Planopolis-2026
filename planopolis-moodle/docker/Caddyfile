@@ -1,0 +1,35 @@
+# Front-end proxy for the Planopolis quiz platform.
+#
+# SITE_ADDRESS in .env controls the mode:
+#   empty      -> listen on :80, plain HTTP (access by IP address)
+#   a hostname -> automatic HTTPS, certificate obtained and renewed by Caddy
+# Switch modes with: sudo SITE_ADDRESS=quiz.example.com ./deploy.sh
+{
+	email {$ACME_EMAIL:panitia@example.com}
+}
+
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		-Server
+	}
+
+	reverse_proxy moodle:80 {
+		# Moodle uses the real client IP for its logs and account lockout.
+		header_up X-Real-IP {remote_host}
+		# A quiz page with many images can take a while to render under load.
+		transport http {
+			read_timeout 300s
+		}
+	}
+
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 20mb
+			roll_keep 5
+		}
+	}
+}

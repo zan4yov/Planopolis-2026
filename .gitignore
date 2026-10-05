@@ -1,0 +1,27 @@
+# ---- Secrets: never commit -------------------------------------------------
+# Holds the live database and Super Admin passwords. deploy.sh generates it
+# on the server from .env.production.example.
+.env
+*.env
+!.env.example
+!.env.production.example
+
+# ---- Runtime state ---------------------------------------------------------
+backups/
+*.dump
+*.sql
+*.tgz
+caddy_data/
+caddy_config/
+
+# ---- Editor / OS -----------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- Office lock files -----------------------------------------------------
+~$*.xlsx
+~$*.docx

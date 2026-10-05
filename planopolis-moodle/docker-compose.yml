@@ -1,0 +1,54 @@
+# Planopolis PWK 2026 quiz platform (Moodle 5.2 + Planopolis plugin).
+# Start:   cp .env.example .env   (edit it)   then   docker compose up -d --build
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      retries: 20
+
+  moodle:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: planopolis-moodle:latest
+    restart: unless-stopped
+    command: ["web"]
+    env_file: .env
+    environment:
+      DB_HOST: db
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - moodledata:/var/moodledata
+    depends_on:
+      db:
+        condition: service_healthy
+
+  cron:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: planopolis-moodle:latest
+    restart: unless-stopped
+    command: ["cron"]
+    env_file: .env
+    environment:
+      DB_HOST: db
+    volumes:
+      - moodledata:/var/moodledata
+    depends_on:
+      - moodle
+
+volumes:
+  pgdata:
+  moodledata:

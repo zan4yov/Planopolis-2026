@@ -1,0 +1,30 @@
+# This project is edited on Windows and executed on Linux (Docker/VPS).
+# Without this file, a CRLF checkout breaks shell scripts with the classic
+# "bad interpreter: /bin/bash^M" and stops the containers from starting.
+
+# Normalise text in the repository; let Git pick the working-copy ending.
+* text=auto
+
+# Must be LF on disk, always: these are executed by Linux shells and daemons.
+*.sh            text eol=lf
+*.ini           text eol=lf
+*.conf          text eol=lf
+Dockerfile      text eol=lf
+Caddyfile       text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+.env.example    text eol=lf
+.env.production.example text eol=lf
+
+# PHP runs inside the Linux container.
+*.php           text eol=lf
+*.xml           text eol=lf
+
+# Never touch these.
+*.xlsx          binary
+*.zip           binary
+*.png           binary
+*.jpg           binary
+*.wav           binary
+*.mp3           binary
+*.pdf           binary
