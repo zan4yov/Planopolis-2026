@@ -2,6 +2,8 @@
 
 This kit turns a standard Moodle 5.2 site into the quiz platform described in the Planopolis PWK 2026 request. It contains a Moodle plugin (`local_planopolis`), a one-command Docker deployment, and Excel templates for questions and participants.
 
+> **To host this publicly on a VPS**, follow `DEPLOY.md` in the `planopolis-moodle/` folder: it covers the server setup, HTTPS, backups, and how to apply later revisions with `git pull`.
+
 | Folder / file | What it is |
 |---|---|
 | `docker-compose.yml`, `.env.example`, `docker/` | Deployment: Moodle 5.2 + PostgreSQL 16 + cron, installs and configures itself on first start |

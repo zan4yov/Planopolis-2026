@@ -15,25 +15,26 @@ for local checks, and PostgreSQL is not published at all.
 
 ---
 
-## 1. Copy the project to the server
+## 1. Get the project onto the server
 
-From your machine, in `Planopolis - 2/`:
+The project lives at <https://github.com/zan4yov/Planopolis-2026>. Clone it on the VPS:
 
 ```bash
-scp -r planopolis-moodle root@<vps-ip>:/opt/planopolis
+ssh root@<vps-ip>
+apt-get update && apt-get install -y git
+git clone https://github.com/zan4yov/Planopolis-2026.git /opt/planopolis
+cd /opt/planopolis/planopolis-moodle
 ```
 
-No `scp`? Use `rsync -av --exclude .env planopolis-moodle/ root@<vps-ip>:/opt/planopolis/`,
-or clone it from your Git repository on the server.
-
-> Do not copy a `.env` from your laptop. The deploy script writes a fresh one with
-> newly generated passwords; the local file still holds development values.
+Cloning is the preferred route over `scp`, because every later client revision is then
+a `git pull` instead of another copy, and because `.env` is not tracked -- a clone can
+never carry your laptop's development passwords onto the server.
 
 ## 2. Deploy
 
 ```bash
 ssh root@<vps-ip>
-cd /opt/planopolis
+cd /opt/planopolis/planopolis-moodle
 chmod +x deploy.sh manage.sh
 sudo ./deploy.sh
 ```
@@ -43,7 +44,7 @@ firewall, generates the database and Super Admin passwords, builds the image and
 until Moodle answers. First run takes roughly 5–15 minutes, mostly downloading Moodle.
 
 It finishes by printing the address, username and password. **Save the password** —
-it is also in `/opt/planopolis/.env`, which is `chmod 600`.
+it is also in `/opt/planopolis/planopolis-moodle/.env`, which is `chmod 600`.
 
 Running `./deploy.sh` again is safe: it keeps your existing `.env` and upgrades in place.
 
@@ -62,14 +63,61 @@ Open `http://<vps-ip>` and log in as the Super Admin, then:
 ./manage.sh logs moodle     # follow a container's log
 ./manage.sh backup          # database dump + uploaded files, into ./backups
 ./manage.sh restore backups/db_2026-10-05_1430.dump
-./manage.sh update          # rebuild after changing the plugin (backs up first)
+./manage.sh update          # pull the latest revision, then rebuild (backs up first)
+./manage.sh rebuild         # rebuild without pulling (after a rollback)
 ```
 
 Back up before and after the event, and copy the files off the server:
 
 ```bash
-scp root@<vps-ip>:/opt/planopolis/backups/\* ./
+scp root@<vps-ip>:/opt/planopolis/planopolis-moodle/backups/\* ./
 ```
+
+## 5. Applying a client revision
+
+The loop once the site is live:
+
+```bash
+# on your machine
+git add -A && git commit -m "Adjust scoring per client feedback" && git push
+
+# on the VPS
+cd /opt/planopolis/planopolis-moodle
+./manage.sh update
+```
+
+`./manage.sh update` backs up the database and files first, pulls the new revision with
+`--ff-only`, rebuilds the image and restarts. Moodle runs any plugin upgrade itself on
+start; follow it with `./manage.sh logs moodle`.
+
+Things worth knowing about this loop:
+
+- **Never edit files directly on the VPS.** `git pull --ff-only` refuses to merge, so a
+  local edit there stops the next update until you undo it with `git checkout -- <file>`.
+  Change things on your machine, push, pull.
+- **`.env` is yours alone.** It is untracked, so a pull never overwrites your passwords
+  or the site address.
+- **Bump the plugin version for schema changes.** If a revision touches
+  `plugin/local_planopolis/db/`, raise `$plugin->version` in
+  `plugin/local_planopolis/version.php`, or Moodle will not run the upgrade.
+- **Rehearse risky revisions.** Close to the event, test a change on a second VPS (or
+  locally) before updating the live one.
+- **Revisions during the event are not worth the risk.** If one cannot wait, take a
+  backup with `./manage.sh backup` immediately beforehand.
+
+To go back to the previous revision:
+
+```bash
+git log --oneline -5          # find the commit that worked
+git checkout <commit>         # detached HEAD
+./manage.sh rebuild           # rebuild without pulling
+```
+
+Use `rebuild`, not `update`, here: a detached HEAD has nothing to pull and `update`
+would stop. Return to the latest revision with `git checkout main && ./manage.sh update`.
+
+If a revision corrupted data rather than code, restore the database instead:
+`./manage.sh restore backups/db_<stamp>.dump`.
 
 ---
 

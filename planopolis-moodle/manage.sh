@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Day-to-day operation of the deployed Planopolis platform.
-#   ./manage.sh status | logs | restart | update | backup | restore <file.tgz> | fix-urls | enable-https <host>
+#   ./manage.sh status | logs | restart | update | rebuild | backup
+#   ./manage.sh restore <file.dump> | fix-urls | enable-https <host>
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")"
 DC="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 log() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 die() { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
+warn() { printf '\033[1;33m!   %s\033[0m\n' "$*"; }
 [ -f .env ] || die "No .env found. Run sudo ./deploy.sh first."
 # Read values directly: sourcing .env would break on a password containing '#'.
 envval() { grep -E "^$1=" .env | head -1 | cut -d= -f2-; }
@@ -28,10 +30,27 @@ case "${1:-}" in
     ;;
 
   update)
-    # Rebuilds the image (picks up plugin changes) and runs Moodle's upgrade.
+    # Pulls the latest revision, rebuilds, and lets Moodle upgrade itself.
     log "Backing up first"; "$0" backup
+    if [ -d .git ]; then
+        log "Fetching the latest revision"
+        # --ff-only: refuse to merge rather than create a surprise commit on the server.
+        git pull --ff-only || die "git pull failed. The server has local changes, or the branch diverged.
+       Inspect with: git status && git log --oneline -3"
+        log "Now at: $(git log --oneline -1)"
+    else
+        warn "Not a git clone - skipping the pull and rebuilding the files already here."
+    fi
     $DC up -d --build
-    log "Done. Watch the upgrade with: ./manage.sh logs moodle"
+    log "Rebuilt. Moodle applies any plugin upgrade on start: ./manage.sh logs moodle"
+    ;;
+
+  rebuild)
+    # Rebuild from whatever is on disk now - no git pull. Used after a rollback
+    # (git checkout <commit> leaves a detached HEAD, which git pull refuses).
+    log "Rebuilding from the current working tree"
+    $DC up -d --build
+    log "Done. ./manage.sh logs moodle"
     ;;
 
   backup)
