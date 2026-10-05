@@ -121,16 +121,20 @@ fi
 if [ -n "$SITE_ADDRESS" ]; then
     CADDY_ADDRESS="$SITE_ADDRESS"
     setkv SITE_ADDRESS "${SITE_ADDRESS}"
+    # Caddy terminates TLS, so Moodle must know the public scheme is https.
     setkv MOODLE_SSLPROXY "true"
-    setkv MOODLE_REVERSEPROXY "true"
 else
     # A bare port, never an empty value: Caddy would read an empty variable as
     # "no address" and refuse the configuration.
     CADDY_ADDRESS=":80"
     setkv SITE_ADDRESS ""
     setkv MOODLE_SSLPROXY "false"
-    setkv MOODLE_REVERSEPROXY "true"
 fi
+# Never enable reverseproxy here. It makes Moodle reject any request whose Host
+# header differs from wwwroot ("Reverse proxy is enabled, the server cannot be
+# accessed directly"), and Caddy forwards the host and port unchanged, so there
+# is nothing for it to correct.
+setkv MOODLE_REVERSEPROXY "false"
 setkv CADDY_ADDRESS "${CADDY_ADDRESS}"
 setkv MOODLE_URL "${SET_URL}"
 grep -q '^HTTP_PORT=127.0.0.1:' .env || setkv HTTP_PORT "127.0.0.1:8080"
@@ -144,8 +148,11 @@ log "Building and starting (first run downloads Moodle – several minutes)"
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 log "Waiting for Moodle to finish installing"
+# Ask as the public host does: Moodle compares Host against wwwroot, so a bare
+# request to 127.0.0.1 would not represent what a participant sees.
+PUBLIC_HOST="${SET_URL#*://}"
 for i in $(seq 1 90); do
-    CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:8080/login/index.php" || true)
+    CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5         -H "Host: ${PUBLIC_HOST}" "http://127.0.0.1:8080/login/index.php" || true)
     case "$CODE" in
         200|303|302) log "The site is up."; READY=1; break ;;
     esac
