@@ -164,6 +164,11 @@ The tuning in `docker-compose.prod.yml` and `docker/apache-mpm.conf` assumes 4 G
 40 Apache workers, 150 PostgreSQL connections. Under a burst, requests queue instead of
 exhausting memory — slow beats crashed.
 
+**On 1 vCPU, lower the worker count.** PHP here is CPU-bound, so 40 workers on a
+single core thrash rather than serve: set `MaxRequestWorkers` to about 16 in
+`docker/apache-mpm.conf`, and treat 2 vCPU as the real minimum for 150-200
+concurrent participants.
+
 For 300–500 participants, move to 4 vCPU / 8 GB and raise `MaxRequestWorkers` to ~80
 and `shared_buffers` to 2GB. Whatever the number, **run a rehearsal** with your real
 participant count before the event; the README's *Exam day* section covers this.
@@ -175,5 +180,6 @@ participant count before the event; the README's *Exam day* section covers this.
 | `./deploy.sh` ends with "has not answered yet" | `./manage.sh logs moodle` — usually still installing, or `DB_PASS` contains `$` |
 | Browser cannot connect | `./manage.sh status`, then `ufw status`, and your provider's own firewall / security group |
 | HTTPS certificate fails | DNS must point at this server and port 80 must be reachable; `./manage.sh logs caddy` |
+| `server block without any key` from Caddy | `CADDY_ADDRESS` in `.env` is empty. It must be `:80` or a hostname; re-run `sudo ./deploy.sh` to set it |
 | Logged-in pages look broken | `MOODLE_URL` in `.env` must exactly match what you type in the browser |
 | Site slow under load | `./manage.sh status` for memory; raise `MaxRequestWorkers` only if RAM allows |

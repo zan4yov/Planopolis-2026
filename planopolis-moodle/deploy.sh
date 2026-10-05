@@ -37,6 +37,7 @@ esac
 TOTAL_MB=$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo)
 echo "    ${PRETTY_NAME}, $(nproc) vCPU, ${TOTAL_MB} MB RAM"
 [ "$TOTAL_MB" -ge 3500 ] || warn "Under 4 GB RAM. Fine for testing; expect trouble with 200 participants at once."
+[ "$(nproc)" -ge 2 ] || warn "Only $(nproc) vCPU. PHP is CPU-bound here; 2+ vCPU is advised for 150-200 concurrent participants."
 
 log "Installing prerequisites"
 export DEBIAN_FRONTEND=noninteractive
@@ -90,7 +91,7 @@ SITE_ADDRESS="${SITE_ADDRESS:-}"
 if [ -f .env ]; then
     # "scp -r" copies the development .env along with everything else. Using it
     # would silently deploy the placeholder passwords from .env.example.
-    if grep -qE '^(DB_PASS|ADMIN_PASS)=.*CHANGE' .env; then
+    if grep -qE '^(DB_PASS|ADMIN_PASS)=.*(CHANGE|GENERATED-BY)' .env; then
         die ".env still holds the placeholder passwords from .env.example.
        This is the development file, copied here by mistake.
        Delete it and run again so fresh passwords are generated:
@@ -118,20 +119,25 @@ else
 fi
 
 if [ -n "$SITE_ADDRESS" ]; then
+    CADDY_ADDRESS="$SITE_ADDRESS"
     setkv SITE_ADDRESS "${SITE_ADDRESS}"
     setkv MOODLE_SSLPROXY "true"
     setkv MOODLE_REVERSEPROXY "true"
 else
+    # A bare port, never an empty value: Caddy would read an empty variable as
+    # "no address" and refuse the configuration.
+    CADDY_ADDRESS=":80"
     setkv SITE_ADDRESS ""
     setkv MOODLE_SSLPROXY "false"
     setkv MOODLE_REVERSEPROXY "true"
 fi
+setkv CADDY_ADDRESS "${CADDY_ADDRESS}"
 setkv MOODLE_URL "${SET_URL}"
 grep -q '^HTTP_PORT=127.0.0.1:' .env || setkv HTTP_PORT "127.0.0.1:8080"
 
 log "Checking the proxy configuration"
 # Fail here rather than after the old proxy has already been replaced.
-docker run --rm -e SITE_ADDRESS="$SITE_ADDRESS" -e ACME_EMAIL="x@example.com"     -v "$(pwd)/docker/Caddyfile:/etc/caddy/Caddyfile:ro"     caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile     || die "docker/Caddyfile is not valid - fix it before deploying (the site was not touched)."
+docker run --rm -e CADDY_ADDRESS="$CADDY_ADDRESS" -e ACME_EMAIL="x@example.com"     -v "$(pwd)/docker/Caddyfile:/etc/caddy/Caddyfile:ro"     caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile     || die "docker/Caddyfile is not valid - fix it before deploying (the site was not touched)."
 echo "    Caddyfile is valid"
 
 log "Building and starting (first run downloads Moodle – several minutes)"

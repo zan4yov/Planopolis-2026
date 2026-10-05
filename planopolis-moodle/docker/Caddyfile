@@ -1,14 +1,16 @@
 # Front-end proxy for the Planopolis quiz platform.
 #
-# SITE_ADDRESS in .env controls the mode:
-#   empty      -> listen on :80, plain HTTP (access by IP address)
-#   a hostname -> automatic HTTPS, certificate obtained and renewed by Caddy
-# Switch modes with: sudo SITE_ADDRESS=quiz.example.com ./deploy.sh
+# CADDY_ADDRESS is always a concrete listen address, never empty:
+#   :80                  plain HTTP (access by IP address)
+#   quiz.example.com     automatic HTTPS, certificate renewed by Caddy
+# deploy.sh writes it into .env. Do not give it a default here: Caddy applies
+# {$VAR:default} only when the variable is UNSET, so a set-but-empty value
+# would silently produce a site block with no address, which Caddy rejects.
 {
 	email {$ACME_EMAIL:panitia@example.com}
 }
 
-{$SITE_ADDRESS::80} {
+{$CADDY_ADDRESS} {
 	encode zstd gzip
 
 	header {
@@ -17,19 +19,11 @@
 		-Server
 	}
 
+	# No explicit timeout: Caddy's default is to wait indefinitely, which is what
+	# a slow quiz page under load needs. Access logs go to stdout, where Docker's
+	# json-file driver rotates them (see docker-compose.prod.yml).
 	reverse_proxy moodle:80 {
 		# Moodle uses the real client IP for its logs and account lockout.
 		header_up X-Real-IP {remote_host}
-		# A quiz page with many images can take a while to render under load.
-		transport http {
-			read_timeout 300s
-		}
-	}
-
-	log {
-		output file /var/log/caddy/access.log {
-			roll_size 20mb
-			roll_keep 5
-		}
 	}
 }
