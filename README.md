@@ -151,6 +151,45 @@ On quiz pages, participants get:
 
 The protection and watermark can be switched off in *Site administration → Plugins → Local plugins → Planopolis quiz tools*. Admins never see it on their own screens.
 
+
+## Branding
+
+`cli/setup.php` applies the Planopolis 2026 identity to the Boost theme. The palette is
+sampled from the official logo on [@planopolisits](https://www.instagram.com/planopolisits/),
+which builds a "P" out of three city elements:
+
+| Colour | Hex | In the logo | Used for |
+|---|---|---|---|
+| Road blue | `#0078d8` | road with lane markings | `brandcolor`: buttons, primary actions |
+| Park green | `#30c090` | tree canopy | `$success` |
+| Building orange | `#ffa818` | building with windows | `$warning`, accent strip under the navbar |
+| Cream | `#f6fbe7` | the logo's circle, softened | page background |
+
+Two deliberate departures, both for legibility — participants read questions under time
+pressure:
+
+- **Links use `#005fa8`, not the brand blue.** The brand blue is 4.5:1 on white, which is
+  below WCAG AA for running text; the darker blue is 6.6:1. The brand blue still carries
+  the buttons and headings, where it is fine.
+- **Error red stays Bootstrap's**, not the campaign's `#f04830`. That red is a signage
+  accent and reaches only 4.2:1 against black or white, and `$danger` is what renders
+  import errors and failed logins.
+
+The logo itself is not in this repository. Upload it in *Site administration → Appearance
+→ Logos*.
+
+To change the palette, edit section 5 of `plugin/local_planopolis/cli/setup.php` and re-run
+the script. To remove the branding entirely:
+
+```bash
+DC="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+for k in scsspre scss brandcolor; do
+  $DC exec -u www-data moodle php /var/www/moodle/admin/cli/cfg.php \
+      --component=theme_boost --name=$k --set=""
+done
+$DC exec -u www-data moodle php /var/www/moodle/admin/cli/purge_caches.php
+```
+
 ## Troubleshooting
 
 | Problem | Fix |

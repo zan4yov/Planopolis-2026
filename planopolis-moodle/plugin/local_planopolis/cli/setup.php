@@ -279,6 +279,58 @@ if ($options['lang'] !== 'en') {
     }
 }
 
+cli_heading('5. Branding (Planopolis 2026)');
+// Palette sampled from the official logo and the 2026 campaign posts on @planopolisits:
+// the logo builds a "P" out of a park canopy (green), a road with lane markings (blue)
+// and a building (orange); the campaign adds a signage red. Readability wins over
+// exuberance here: participants read questions under time pressure, so the brand colours
+// carry the chrome and the question area stays white text-on-white-card.
+set_config('theme', 'boost');
+set_config('brandcolor', '#0078d8', 'theme_boost');
+
+// Injected before Bootstrap, so these override its !default variables.
+$scsspre = <<<'SCSS'
+// Planopolis 2026 palette. $primary comes from the theme's own "brandcolor"
+// setting (#0078d8, the road blue), so it is deliberately not repeated here.
+$plano-green:  #30c090;   // park canopy in the logo
+$plano-orange: #ffa818;   // building block in the logo
+$plano-cream:  #f6fbe7;   // softened tint of the logo's #f0ffd8 circle
+
+// Dark text on these reaches 6.7:1 and 8.0:1, so Bootstrap's buttons and badges
+// stay readable.
+$success: $plano-green;
+$warning: $plano-orange;
+
+// $danger keeps Bootstrap's own red on purpose. The campaign's #f04830 is a
+// signage accent, not an error colour, and it manages only 4.2:1 against either
+// black or white text - too low for the import errors and login failures that
+// $danger actually renders.
+
+// The brand blue is 4.5:1 on white: fine for buttons and headings, marginal for running
+// text. Links get a darker blue at 6.5:1 so body copy stays above WCAG AA.
+$link-color: #005fa8;
+
+$body-bg: $plano-cream;
+$border-radius:    .75rem;
+$border-radius-lg: 1rem;
+SCSS;
+set_config('scsspre', $scsspre, 'theme_boost');
+
+// Injected after Bootstrap. Kept to two stable selectors: deep overrides of Boost's
+// markup tend to break on the next Moodle upgrade.
+$scss = <<<'SCSS'
+// Accent strip under the navigation, echoing the road markings in the logo.
+.navbar.fixed-top { border-bottom: 4px solid #ffa818; }
+
+// White cards on the cream page, like the campaign's sticker-on-photo layout.
+#page-content .card,
+.pagelayout-login .card { border: 0; box-shadow: 0 2px 0 rgba(0, 0, 0, .08); }
+SCSS;
+set_config('scss', $scss, 'theme_boost');
+
+cli_writeln('  theme boost, brand colour #0078d8, Planopolis 2026 palette applied');
+cli_writeln('  logo: upload it in Site administration > Appearance > Logos');
+
 purge_all_caches();
 cli_heading('Done');
 cli_writeln('Log in as the site administrator (Super Admin) and open ' . $CFG->wwwroot . '/local/planopolis/index.php');
