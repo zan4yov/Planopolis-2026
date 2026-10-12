@@ -323,6 +323,10 @@ $scss = <<<'SCSS'
 // White cards on the cream page, like the campaign's sticker-on-photo layout.
 #page-content .card,
 .pagelayout-login .card { border: 0; box-shadow: 0 2px 0 rgba(0, 0, 0, .08); }
+
+// Moodle's own marketing figures - 500M users, 150K sites, 200+ countries - say nothing
+// to someone about to sit a competition, so the panel drops them.
+.login-layout-stats { display: none; }
 SCSS;
 set_config('scss', $scss, 'theme_boost');
 
