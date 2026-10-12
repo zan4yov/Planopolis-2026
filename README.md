@@ -154,38 +154,52 @@ The protection and watermark can be switched off in *Site administration → Plu
 
 ## Branding
 
-`cli/setup.php` applies the Planopolis 2026 identity to the Boost theme. The palette is
-sampled from the official logo on [@planopolisits](https://www.instagram.com/planopolisits/),
-which builds a "P" out of three city elements:
+Section 5 of `cli/setup.php` applies the Planopolis 2026 identity to the Boost theme and
+installs the brand assets, so a fresh deploy comes up branded with no manual steps.
 
-| Colour | Hex | In the logo | Used for |
+The palette is read from the official assets themselves, not sampled from social media.
+The logomark builds a "P" out of three city elements, and all three files agree on the
+same values:
+
+| Colour | Hex | In the logomark | Used for |
 |---|---|---|---|
-| Road blue | `#0078d8` | road with lane markings | `brandcolor`: buttons, primary actions |
-| Park green | `#30c090` | tree canopy | `$success` |
-| Building orange | `#ffa818` | building with windows | `$warning`, accent strip under the navbar |
-| Cream | `#f6fbe7` | the logo's circle, softened | page background |
+| Road blue | `#006cd8` | road with lane markings | `brandcolor`: links, buttons, primary actions |
+| Park green | `#3bb79b` | tree canopy | `$success` |
+| Building yellow | `#feb322` | building with windows | `$warning`, accent strip under the navbar |
+| Cream | `#f3fede` | the wordmark's outline | page background |
 
-Two deliberate departures, both for legibility — participants read questions under time
-pressure:
+Assets live in `plugin/local_planopolis/pix/` and are installed into Moodle's own
+appearance file areas:
 
-- **Links use `#005fa8`, not the brand blue.** The brand blue is 4.5:1 on white, which is
-  below WCAG AA for running text; the darker blue is 6.6:1. The brand blue still carries
-  the buttons and headings, where it is fine.
-- **Error red stays Bootstrap's**, not the campaign's `#f04830`. That red is a signage
-  accent and reaches only 4.2:1 against black or white, and `$danger` is what renders
-  import errors and failed logins.
+| File | What it is | Installed as |
+|---|---|---|
+| `logo.png` | "Planopolis 2026" wordmark, 863×137 | site logo |
+| `logomark.png` | the "P" logomark, transparent | compact logo |
+| `favicon.png` | square 256×256, padded from the logomark | favicon |
+| `loginbackground.png` | decorative corner frame | login page background |
 
-The logo itself is not in this repository. Upload it in *Site administration → Appearance
-→ Logos*.
+`favicon.png` is padded to a square on purpose: the logomark is portrait, and browsers
+scale a favicon into a square box, which would otherwise distort it.
 
-To change the palette, edit section 5 of `plugin/local_planopolis/cli/setup.php` and re-run
-the script. To remove the branding entirely:
+**One deliberate departure from the brand palette.** `$danger` keeps Bootstrap's red
+rather than the brand's `#f5512c`. That red is a signage accent, and it reaches only
+4.5:1 against dark text and 3.4:1 against white — below WCAG AA for the import errors and
+failed logins that `$danger` actually renders. Participants read this screen under time
+pressure, so legibility wins. The brand blue needs no such treatment: at 5.1:1 on white it
+clears AA, so it carries links and buttons alike.
+
+To change the palette or swap an asset, edit section 5 of
+`plugin/local_planopolis/cli/setup.php` (or replace the file in `pix/`) and re-run it. To
+strip the branding back to stock Moodle:
 
 ```bash
 DC="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
-for k in scsspre scss brandcolor; do
-  $DC exec -u www-data moodle php /var/www/moodle/admin/cli/cfg.php \
-      --component=theme_boost --name=$k --set=""
+R="$DC exec -u www-data moodle php /var/www/moodle/admin/cli/cfg.php"
+for k in scsspre scss brandcolor loginbackgroundimage; do
+  $R --component=theme_boost --name=$k --set=""
+done
+for k in logo logocompact favicon; do
+  $R --component=core_admin --name=$k --set=""
 done
 $DC exec -u www-data moodle php /var/www/moodle/admin/cli/purge_caches.php
 ```

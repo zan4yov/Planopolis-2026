@@ -280,35 +280,33 @@ if ($options['lang'] !== 'en') {
 }
 
 cli_heading('5. Branding (Planopolis 2026)');
-// Palette sampled from the official logo and the 2026 campaign posts on @planopolisits:
-// the logo builds a "P" out of a park canopy (green), a road with lane markings (blue)
-// and a building (orange); the campaign adds a signage red. Readability wins over
-// exuberance here: participants read questions under time pressure, so the brand colours
-// carry the chrome and the question area stays white text-on-white-card.
+// Exact flat colours read from the official brand assets (planopolis26.png wordmark and
+// PC.png frame), not sampled from compressed social images. The identity builds a "P" out
+// of a park canopy (green), a road with lane markings (blue) and a building (yellow).
+// Readability wins over exuberance here: participants read questions under time pressure,
+// so the brand colours carry the chrome and the question area stays text on white cards.
 set_config('theme', 'boost');
-set_config('brandcolor', '#0078d8', 'theme_boost');
+set_config('brandcolor', '#006cd8', 'theme_boost');
 
 // Injected before Bootstrap, so these override its !default variables.
 $scsspre = <<<'SCSS'
 // Planopolis 2026 palette. $primary comes from the theme's own "brandcolor"
-// setting (#0078d8, the road blue), so it is deliberately not repeated here.
-$plano-green:  #30c090;   // park canopy in the logo
-$plano-orange: #ffa818;   // building block in the logo
-$plano-cream:  #f6fbe7;   // softened tint of the logo's #f0ffd8 circle
+// setting (#006cd8, the road blue), so it is deliberately not repeated here.
+// That blue is 5.1:1 on white, above WCAG AA for body text, so links need no
+// separate colour and the brand blue is used throughout.
+$plano-green:  #3bb79b;   // park canopy
+$plano-orange: #feb322;   // building block
+$plano-cream:  #f3fede;   // the outline cream of the wordmark
 
-// Dark text on these reaches 6.7:1 and 8.0:1, so Bootstrap's buttons and badges
+// Dark text on these reaches 6.2:1 and 8.6:1, so Bootstrap's buttons and badges
 // stay readable.
 $success: $plano-green;
 $warning: $plano-orange;
 
-// $danger keeps Bootstrap's own red on purpose. The campaign's #f04830 is a
-// signage accent, not an error colour, and it manages only 4.2:1 against either
-// black or white text - too low for the import errors and login failures that
+// $danger keeps Bootstrap's own red on purpose. The brand's #f5512c is a signage
+// accent, not an error colour, and it manages only 4.5:1 against dark text and
+// 3.4:1 against white - below AA for the import errors and failed logins that
 // $danger actually renders.
-
-// The brand blue is 4.5:1 on white: fine for buttons and headings, marginal for running
-// text. Links get a darker blue at 6.5:1 so body copy stays above WCAG AA.
-$link-color: #005fa8;
 
 $body-bg: $plano-cream;
 $border-radius:    .75rem;
@@ -320,7 +318,7 @@ set_config('scsspre', $scsspre, 'theme_boost');
 // markup tend to break on the next Moodle upgrade.
 $scss = <<<'SCSS'
 // Accent strip under the navigation, echoing the road markings in the logo.
-.navbar.fixed-top { border-bottom: 4px solid #ffa818; }
+.navbar.fixed-top { border-bottom: 4px solid #feb322; }
 
 // White cards on the cream page, like the campaign's sticker-on-photo layout.
 #page-content .card,
@@ -328,8 +326,42 @@ $scss = <<<'SCSS'
 SCSS;
 set_config('scss', $scss, 'theme_boost');
 
-cli_writeln('  theme boost, brand colour #0078d8, Planopolis 2026 palette applied');
-cli_writeln('  logo: upload it in Site administration > Appearance > Logos');
+cli_writeln('  theme boost, brand colour #006cd8, Planopolis 2026 palette applied');
+
+// Brand assets shipped in the plugin's pix/ folder, installed into the file areas that
+// Moodle's own appearance settings read. Each one is guarded: a missing or unreadable
+// asset must not abort an otherwise healthy setup run.
+$fs = get_file_storage();
+$pixdir = __DIR__ . '/../pix/';
+$assets = [
+    // file, component, file area + setting name
+    ['logo.png', 'core_admin', 'logo'],
+    ['logomark.png', 'core_admin', 'logocompact'],
+    ['favicon.png', 'core_admin', 'favicon'],
+    ['loginbackground.png', 'theme_boost', 'loginbackgroundimage'],
+];
+foreach ($assets as [$file, $component, $area]) {
+    $source = $pixdir . $file;
+    if (!is_readable($source)) {
+        cli_writeln("  {$area}: {$file} not found, skipped");
+        continue;
+    }
+    try {
+        $fs->delete_area_files($syscontext->id, $component, $area);
+        $fs->create_file_from_pathname([
+            'contextid' => $syscontext->id,
+            'component' => $component,
+            'filearea' => $area,
+            'itemid' => 0,
+            'filepath' => '/',
+            'filename' => $file,
+        ], $source);
+        set_config($area, '/' . $file, $component);
+        cli_writeln("  {$area}: {$file}");
+    } catch (Throwable $e) {
+        cli_writeln("  {$area}: could not install {$file} - " . $e->getMessage());
+    }
+}
 
 purge_all_caches();
 cli_heading('Done');
