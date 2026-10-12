@@ -24,7 +24,7 @@
 use local_planopolis\local\helper;
 use local_planopolis\local\results;
 
-require(__DIR__ . '/../../config.php');
+require(__DIR__ . '/configbootstrap.php');
 
 $cmid = optional_param('cmid', 0, PARAM_INT);
 $download = optional_param('download', 0, PARAM_BOOL);

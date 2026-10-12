@@ -24,7 +24,7 @@
 use local_planopolis\local\helper;
 use local_planopolis\local\participant_importer;
 
-require(__DIR__ . '/../../config.php');
+require(__DIR__ . '/configbootstrap.php');
 
 $course = helper::setup_page('/local/planopolis/import_participants.php', 'importparticipants');
 require_capability('moodle/user:create', core\context\system::instance());

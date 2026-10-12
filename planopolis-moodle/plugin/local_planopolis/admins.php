@@ -23,7 +23,7 @@
 
 use local_planopolis\local\helper;
 
-require(__DIR__ . '/../../config.php');
+require(__DIR__ . '/configbootstrap.php');
 require_once($CFG->dirroot . '/user/lib.php');
 
 require_login(null, false);

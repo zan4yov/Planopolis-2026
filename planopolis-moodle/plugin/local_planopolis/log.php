@@ -23,7 +23,7 @@
 
 define('AJAX_SCRIPT', true);
 
-require(__DIR__ . '/../../config.php');
+require(__DIR__ . '/configbootstrap.php');
 
 $attemptid = required_param('attempt', PARAM_INT);
 $type = required_param('type', PARAM_ALPHA);

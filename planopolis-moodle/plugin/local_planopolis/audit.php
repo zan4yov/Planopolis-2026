@@ -24,7 +24,7 @@
 use local_planopolis\local\auditor;
 use local_planopolis\local\helper;
 
-require(__DIR__ . '/../../config.php');
+require(__DIR__ . '/configbootstrap.php');
 
 $cmid = optional_param('cmid', 0, PARAM_INT);
 $course = helper::setup_page('/local/planopolis/audit.php', 'audit', $cmid ? ['cmid' => $cmid] : []);

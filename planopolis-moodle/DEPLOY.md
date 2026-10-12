@@ -185,6 +185,7 @@ participant count before the event; the README's *Exam day* section covers this.
 | HTTPS certificate fails | DNS must point at this server and port 80 must be reachable; `./manage.sh logs caddy` |
 | `server block without any key` from Caddy | `CADDY_ADDRESS` in `.env` is empty. It must be `:80` or a hostname; re-run `sudo ./deploy.sh` to set it |
 | `cannot execute ./deploy.sh: Permission denied` | The executable bit is missing: `chmod +x deploy.sh manage.sh`. A clone of the current revision already has it |
+| `Undefined variable $CFG` from a plugin page or `cli/setup.php` | Should no longer happen: `configbootstrap.php` locates `config.php` for any layout. If it does, its message names every path it read |
 | Logged-in pages look broken | `MOODLE_URL` in `.env` must exactly match what you type in the browser |
 | "Reverse proxy is enabled, the server cannot be accessed directly" | `MOODLE_REVERSEPROXY` must be `false`, and `MOODLE_URL` must match the address you type. Re-run `sudo ./deploy.sh` |
 | Site slow under load | `./manage.sh status` for memory; raise `MaxRequestWorkers` only if RAM allows |

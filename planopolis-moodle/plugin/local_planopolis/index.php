@@ -24,7 +24,7 @@
 use local_planopolis\local\auditor;
 use local_planopolis\local\helper;
 
-require(__DIR__ . '/../../config.php');
+require(__DIR__ . '/configbootstrap.php');
 
 $course = helper::setup_page('/local/planopolis/index.php', 'panel');
 $coursecontext = core\context\course::instance($course->id);

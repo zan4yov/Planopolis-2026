@@ -25,7 +25,7 @@ use local_planopolis\local\helper;
 use local_planopolis\local\question_importer;
 use local_planopolis\local\question_sheet;
 
-require(__DIR__ . '/../../config.php');
+require(__DIR__ . '/configbootstrap.php');
 
 $course = helper::setup_page('/local/planopolis/import_questions.php', 'importquestions');
 $quizzes = helper::quiz_menu($course);
