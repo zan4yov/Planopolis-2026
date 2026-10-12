@@ -328,41 +328,6 @@ set_config('scss', $scss, 'theme_boost');
 
 cli_writeln('  theme boost, brand colour #006cd8, Planopolis 2026 palette applied');
 
-// Brand assets shipped in the plugin's pix/ folder, installed into the file areas that
-// Moodle's own appearance settings read. Each one is guarded: a missing or unreadable
-// asset must not abort an otherwise healthy setup run.
-$fs = get_file_storage();
-$pixdir = __DIR__ . '/../pix/';
-$assets = [
-    // file, component, file area + setting name
-    ['logo.png', 'core_admin', 'logo'],
-    ['logomark.png', 'core_admin', 'logocompact'],
-    ['favicon.png', 'core_admin', 'favicon'],
-    ['loginbackground.png', 'theme_boost', 'loginbackgroundimage'],
-];
-foreach ($assets as [$file, $component, $area]) {
-    $source = $pixdir . $file;
-    if (!is_readable($source)) {
-        cli_writeln("  {$area}: {$file} not found, skipped");
-        continue;
-    }
-    try {
-        $fs->delete_area_files($syscontext->id, $component, $area);
-        $fs->create_file_from_pathname([
-            'contextid' => $syscontext->id,
-            'component' => $component,
-            'filearea' => $area,
-            'itemid' => 0,
-            'filepath' => '/',
-            'filename' => $file,
-        ], $source);
-        set_config($area, '/' . $file, $component);
-        cli_writeln("  {$area}: {$file}");
-    } catch (Throwable $e) {
-        cli_writeln("  {$area}: could not install {$file} - " . $e->getMessage());
-    }
-}
-
 purge_all_caches();
 cli_heading('Done');
 cli_writeln('Log in as the site administrator (Super Admin) and open ' . $CFG->wwwroot . '/local/planopolis/index.php');

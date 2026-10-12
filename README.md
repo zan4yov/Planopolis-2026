@@ -154,12 +154,9 @@ The protection and watermark can be switched off in *Site administration → Plu
 
 ## Branding
 
-Section 5 of `cli/setup.php` applies the Planopolis 2026 identity to the Boost theme and
-installs the brand assets, so a fresh deploy comes up branded with no manual steps.
-
-The palette is read from the official assets themselves, not sampled from social media.
-The logomark builds a "P" out of three city elements, and all three files agree on the
-same values:
+Section 5 of `cli/setup.php` applies the Planopolis 2026 colours to the Boost theme. The
+palette is read from the official brand files, and the logomark, the wordmark and the
+frame all agree on the same values:
 
 | Colour | Hex | In the logomark | Used for |
 |---|---|---|---|
@@ -168,38 +165,24 @@ same values:
 | Building yellow | `#feb322` | building with windows | `$warning`, accent strip under the navbar |
 | Cream | `#f3fede` | the wordmark's outline | page background |
 
-Assets live in `plugin/local_planopolis/pix/` and are installed into Moodle's own
-appearance file areas:
+**One deliberate departure.** `$danger` keeps Bootstrap's red rather than the brand's
+`#f5512c`. That red is a signage accent, and it reaches only 4.5:1 against dark text and
+3.4:1 against white — below WCAG AA for the import errors and failed logins that `$danger`
+actually renders. Participants read this screen under time pressure, so legibility wins.
+The brand blue needs no such treatment: at 5.1:1 on white it clears AA, so it carries
+links and buttons alike.
 
-| File | What it is | Installed as |
-|---|---|---|
-| `logo.png` | "Planopolis 2026" wordmark, 863×137 | site logo |
-| `logomark.png` | the "P" logomark, transparent | compact logo |
-| `favicon.png` | square 256×256, padded from the logomark | favicon |
-| `loginbackground.png` | decorative corner frame | login page background |
+Logos are not part of this setup. Upload them in *Site administration → Appearance →
+Logos*, and the login background under *Appearance → Themes → Boost*.
 
-`favicon.png` is padded to a square on purpose: the logomark is portrait, and browsers
-scale a favicon into a square box, which would otherwise distort it.
-
-**One deliberate departure from the brand palette.** `$danger` keeps Bootstrap's red
-rather than the brand's `#f5512c`. That red is a signage accent, and it reaches only
-4.5:1 against dark text and 3.4:1 against white — below WCAG AA for the import errors and
-failed logins that `$danger` actually renders. Participants read this screen under time
-pressure, so legibility wins. The brand blue needs no such treatment: at 5.1:1 on white it
-clears AA, so it carries links and buttons alike.
-
-To change the palette or swap an asset, edit section 5 of
-`plugin/local_planopolis/cli/setup.php` (or replace the file in `pix/`) and re-run it. To
-strip the branding back to stock Moodle:
+To change the palette, edit section 5 of `plugin/local_planopolis/cli/setup.php` and
+re-run it. To strip the colours back to stock Moodle:
 
 ```bash
 DC="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
-R="$DC exec -u www-data moodle php /var/www/moodle/admin/cli/cfg.php"
-for k in scsspre scss brandcolor loginbackgroundimage; do
-  $R --component=theme_boost --name=$k --set=""
-done
-for k in logo logocompact favicon; do
-  $R --component=core_admin --name=$k --set=""
+for k in scsspre scss brandcolor; do
+  $DC exec -u www-data moodle php /var/www/moodle/admin/cli/cfg.php \
+      --component=theme_boost --name=$k --set=""
 done
 $DC exec -u www-data moodle php /var/www/moodle/admin/cli/purge_caches.php
 ```

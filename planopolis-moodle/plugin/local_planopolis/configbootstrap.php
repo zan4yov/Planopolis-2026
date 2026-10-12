@@ -20,20 +20,24 @@
  * Counting "../" by hand breaks whenever Moodle moves things. Before 5.1 a plugin sat in
  * <dirroot>/local/; from 5.1 it sits in <dirroot>/public/local/ while config.php stays at
  * <dirroot>. The pages of this plugin and its CLI script also sit at different depths, so
- * every file needed a different count and one wrong count failed in a way that named the
- * wrong line: the include itself succeeded, $CFG was never set, and the next line reported
+ * every file needed a different count, and a wrong count failed in a way that named the
+ * wrong line: the include succeeded, $CFG was never set, and the next line reported
  * "Undefined variable $CFG".
  *
- * So this walks up from the including file and takes the first config.php that actually
- * bootstraps Moodle, judged by the result rather than by its path. A placeholder that
- * parses but leaves $CFG unset is therefore skipped rather than accepted.
+ * So this walks up from the plugin and chooses the file, then loads it once.
+ *
+ * The choice is made without executing anything, because trying candidates in turn is
+ * destructive: Moodle's config.php begins with unset($CFG) and pulls in lib/setup.php with
+ * require_once, so a second attempt discards a working $CFG and cannot rebuild it. Moodle's
+ * real config.php is the one carrying the database settings, which a forwarding stub or a
+ * placeholder at another depth does not, so the two can be told apart by reading them.
  *
  * @package    local_planopolis
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// Deliberately not inside a function: config.php must be required at global scope.
-$planoconfigtried = [];
+$planoconfig = null;
+$planoseen = [];
 for ($planodir = __DIR__, $planodepth = 0;
         $planodepth < 6 && $planodir !== dirname($planodir);
         $planodir = dirname($planodir), $planodepth++) {
@@ -42,21 +46,19 @@ for ($planodir = __DIR__, $planodepth = 0;
     if (!is_readable($planocandidate)) {
         continue;
     }
-    $planoconfigtried[] = $planocandidate;
-    require($planocandidate);
-
-    // The only reliable test is whether Moodle came up.
-    if (isset($CFG) && !empty($CFG->libdir)) {
+    $planoseen[] = $planocandidate;
+    if (strpos(file_get_contents($planocandidate), '$CFG->dbtype') !== false) {
+        $planoconfig = $planocandidate;
         break;
     }
 }
 
-if (!isset($CFG) || empty($CFG->libdir)) {
-    $planomessage = "local_planopolis: could not load Moodle's config.php.\n"
+if ($planoconfig === null) {
+    $planomessage = "local_planopolis: could not find Moodle's config.php.\n"
         . '  searched upwards from: ' . __DIR__ . "\n"
-        . '  config.php files read: '
-        . ($planoconfigtried ? implode(', ', $planoconfigtried) : 'none found') . "\n"
-        . "  none of them defined \$CFG->libdir.\n";
+        . '  config.php files seen: '
+        . ($planoseen ? implode(', ', $planoseen) : 'none') . "\n"
+        . "  none of them set \$CFG->dbtype, so none is a Moodle configuration.\n";
     if (defined('CLI_SCRIPT') && CLI_SCRIPT) {
         fwrite(STDERR, $planomessage);
     } else {
@@ -66,4 +68,7 @@ if (!isset($CFG) || empty($CFG->libdir)) {
     exit(1);
 }
 
-unset($planoconfigtried, $planodir, $planodepth, $planocandidate, $planomessage);
+unset($planoseen, $planodir, $planodepth, $planocandidate);
+
+// Exactly one require, at global scope, which is what Moodle expects.
+require($planoconfig);
